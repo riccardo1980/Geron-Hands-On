@@ -8,7 +8,7 @@ import numpy as np
 import warnings 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore",category=FutureWarning)
-    from chap09_resources.regression import LogisticRegression
+    from C09_resources.regression import LogisticRegression
 
 # fetch dataset
 data, target = make_moons(n_samples=500, random_state=42)
