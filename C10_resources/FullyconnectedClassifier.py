@@ -17,7 +17,7 @@ def neuron_layer(X, units, name, activation=None):
 def model_fn(features, labels, mode, params):
 
     # input
-    net = tf.feature_column.input_layer(features,
+    net = tf.compat.v1.feature_column.input_layer(features,
                                         params['feature_columns'])
     
     # hidden layers
@@ -44,10 +44,10 @@ def model_fn(features, labels, mode, params):
         loss =  tf.reduce_mean(xentropy)                                                     
 
     with tf.name_scope('evaluation_metrics'):
-        accuracy = tf.metrics.accuracy(labels, predicted_classes)
+        accuracy = tf.compat.v1.metrics.accuracy(labels, predicted_classes)
 
     metrics = {'accuracy': accuracy}
-    tf.summary.scalar('accuracy', accuracy[1])
+    tf.compat.v1.summary.scalar('accuracy', accuracy[1])
 
     if mode == tf.estimator.ModeKeys.EVAL:
         return tf.estimator.EstimatorSpec(mode,
@@ -55,9 +55,9 @@ def model_fn(features, labels, mode, params):
                                           eval_metric_ops=metrics)
 
     assert mode == tf.estimator.ModeKeys.TRAIN
-    optimizer = tf.train.AdagradOptimizer(learning_rate=params['learning_rate'])
+    optimizer = tf.compat.v1.train.AdagradOptimizer(learning_rate=params['learning_rate'])
 
-    train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
+    train_op = optimizer.minimize(loss, global_step=tf.compat.v1.train.get_global_step())
     return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
 
 

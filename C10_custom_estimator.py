@@ -5,7 +5,6 @@ import numpy as np
 with warnings.catch_warnings():  
     warnings.filterwarnings("ignore",category=FutureWarning)
     import tensorflow as tf
-    from tensorflow.compat.v1.estimator import inputs as inputs
 
     from C10_resources import FullyconnectedClassifier
 
@@ -64,7 +63,7 @@ estimator = tf.estimator.Estimator(
     )
 
 train_spec = tf.estimator.TrainSpec(
-    input_fn=inputs.numpy_input_fn(x = {'f1' : X_train},
+    input_fn=tf.compat.v1.estimator.inputs.numpy_input_fn(x = {'f1' : X_train},
                                    y = y_train,
                                    batch_size=batch_size,
                                    num_epochs=None,
@@ -72,7 +71,7 @@ train_spec = tf.estimator.TrainSpec(
     max_steps=max_steps)                        
 
 eval_spec = tf.estimator.EvalSpec(
-    input_fn=inputs.numpy_input_fn(x = {'f1' : X_test},y = y_test,
+    input_fn=tf.compat.v1.estimator.inputs.numpy_input_fn(x = {'f1' : X_test},y = y_test,
                                    num_epochs=None,
                                    shuffle=False))
 
