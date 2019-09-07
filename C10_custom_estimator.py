@@ -1,37 +1,39 @@
 import os
 import warnings
 import numpy as np
+
 with warnings.catch_warnings():  
     warnings.filterwarnings("ignore",category=FutureWarning)
-    import tensorflow as tf 
+    import tensorflow as tf
+    from tensorflow.compat.v1.estimator import inputs as inputs
+
     from C10_resources import FullyconnectedClassifier
 
 from datetime import datetime
 
-from sklearn.datasets import fetch_openml
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-
-
-
-
 # read dataset
-dataset = fetch_openml('mnist_784', version=1)
-n_classes = len(set(dataset.target))
-train_data, test_data, train_target, test_target = train_test_split(dataset.data, dataset.target)
+(train_data, train_target), (test_data, test_target) = tf.keras.datasets.mnist.load_data()
+train_data = train_data.astype(np.float32)
+test_data = test_data.astype(np.float32) 
+train_target = train_target.astype(np.int32)
+test_target = test_target.astype(np.int32) 
+
+n_classes = len(set(train_target))
+
+print('n_classes: {}'.format(n_classes))
 
 # standardization trained on train, reused on test dataset
-scaler = StandardScaler()
-X_train = scaler.fit_transform(train_data)
-X_test = scaler.transform(test_data)
+def preproc_standardize(dataset, mean, std):
+    return (dataset - mean) / (std + 1e-15)
 
-# string to class index
-class_index_map = { k: v for v, k in enumerate(sorted(list(set(dataset.target))))}
-index_class_map = { v: k for k,v in class_index_map.items() }
-class_index_mapping = np.vectorize(lambda x: class_index_map[x])
+features_mean = np.mean(train_data, axis=0)
+features_std = np.std(train_data, axis=0)
 
-y_train = class_index_mapping(train_target).reshape(-1,1)
-y_test = class_index_mapping(test_target).reshape(-1,1)
+X_train = preproc_standardize(train_data, features_mean, features_std)
+X_test =  preproc_standardize(test_data, features_mean, features_std)
+
+y_train = train_target
+y_test = test_target
 
 # create feature columns
 feature_columns = [ tf.feature_column.numeric_column(key='f1', shape=X_train[0].shape) ]
@@ -61,16 +63,17 @@ estimator = tf.estimator.Estimator(
     config=config
     )
 
-train_spec = tf.estimator.TrainSpec(input_fn=tf.estimator.inputs.numpy_input_fn(x = {'f1' : X_train},
-                                                                                y = y_train, 
-                                                                                batch_size=batch_size, 
-                                                                                num_epochs=None,
-                                                                                shuffle=True), 
-                                    max_steps=max_steps)                        
+train_spec = tf.estimator.TrainSpec(
+    input_fn=inputs.numpy_input_fn(x = {'f1' : X_train},
+                                   y = y_train,
+                                   batch_size=batch_size,
+                                   num_epochs=None,
+                                   shuffle=True), 
+    max_steps=max_steps)                        
 
-eval_spec = tf.estimator.EvalSpec(input_fn=tf.estimator.inputs.numpy_input_fn(x = {'f1' : X_test},
-                                                                              y = y_test, 
-                                                                              num_epochs=None,
-                                                                              shuffle=False))
+eval_spec = tf.estimator.EvalSpec(
+    input_fn=inputs.numpy_input_fn(x = {'f1' : X_test},y = y_test,
+                                   num_epochs=None,
+                                   shuffle=False))
 
 tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)

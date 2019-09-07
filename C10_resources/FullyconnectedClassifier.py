@@ -39,14 +39,14 @@ def model_fn(features, labels, mode, params):
         return tf.estimator.EstimatorSpec(mode, predictions=predictions)
     
     with tf.name_scope('loss'):
-        loss = tf.keras.losses.sparse_categorical_crossentropy(labels,
-                                                               logits,
-                                                               from_logits=True)    
+        xentropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels,
+                                                              logits=logits)
+        loss =  tf.reduce_mean(xentropy)                                                     
 
     with tf.name_scope('evaluation_metrics'):
         accuracy = tf.metrics.accuracy(labels, predicted_classes)
 
-    metrics = {'accuracy', accuracy}
+    metrics = {'accuracy': accuracy}
     tf.summary.scalar('accuracy', accuracy[1])
 
     if mode == tf.estimator.ModeKeys.EVAL:
