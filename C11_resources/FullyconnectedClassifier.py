@@ -79,6 +79,8 @@ def model_fn(features, labels, mode, params):
     optimizer = tf.compat.v1.train.AdagradOptimizer(learning_rate=params['learning_rate'])
     
     # get operations related to batch normalization
+    # see: https://stackoverflow.com/questions/45299522/batch-normalization-in-a-custom-estimator-in-tensorflow
+    # see: https://github.com/tensorflow/tensorflow/issues/16455
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
         train_op = optimizer.minimize(loss, global_step=tf.compat.v1.train.get_global_step())
