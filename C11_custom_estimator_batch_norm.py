@@ -51,13 +51,14 @@ config = tf.estimator.RunConfig(tf_random_seed=42,
                                 save_checkpoints_steps=save_checkpoints_steps,
                                 log_step_count_steps=log_step_count_steps)
 
+learning_rate = 1e-4
 estimator = tf.estimator.Estimator(
     model_fn=FullyconnectedClassifier.model_fn,
     params={'feature_columns': feature_columns,
         'hidden_units': [300, 100],
         'activation': 'relu',
-        'n_classes': 10,
-        'learning_rate': 1e-4,
+        'n_classes': n_classes,
+        'optimizer': tf.compat.v1.train.AdagradOptimizer(learning_rate=learning_rate),
         'batch_norm_momentum': None
        },
     config=config

@@ -76,7 +76,7 @@ def model_fn(features, labels, mode, params):
                                           eval_metric_ops=metrics)
 
     assert mode == tf.estimator.ModeKeys.TRAIN
-    optimizer = tf.compat.v1.train.AdagradOptimizer(learning_rate=params['learning_rate'])
+    optimizer = params['optimizer']
     
     # get operations related to batch normalization
     # see: https://stackoverflow.com/questions/45299522/batch-normalization-in-a-custom-estimator-in-tensorflow
