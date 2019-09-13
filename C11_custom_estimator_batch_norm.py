@@ -37,8 +37,9 @@ feature_columns = [ tf.feature_column.numeric_column(key='f1', shape=X_train[0].
 
 batch_size=200
 max_steps=30000
-save_checkpoints_steps=2000
-log_step_count_steps=500
+save_checkpoints_steps=2000 # checkpoints
+log_step_count_steps=100    # summary
+throttle_secs = 10          # do not re-evaluate unless last eval is lolder than...
 
 print('n_classes: {}'.format(n_classes))
 print('epochs: {}'.format( max_steps * batch_size / y_train.shape[0] ))
@@ -69,12 +70,13 @@ train_spec = tf.estimator.TrainSpec(
                                    y = y_train,
                                    batch_size=batch_size,
                                    num_epochs=None,
-                                   shuffle=True), 
+                                   shuffle=False), 
     max_steps=max_steps)                        
 
 eval_spec = tf.estimator.EvalSpec(
     input_fn=tf.compat.v1.estimator.inputs.numpy_input_fn(x = {'f1' : X_test},y = y_test,
                                    num_epochs=None,
-                                   shuffle=False))
+                                   shuffle=False),
+                                   throttle_secs=throttle_secs)
 
 tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
