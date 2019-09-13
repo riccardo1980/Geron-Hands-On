@@ -59,17 +59,19 @@ def model_fn(features, labels, mode, params):
         }
         return tf.estimator.EstimatorSpec(mode, predictions=predictions)
     
-    with tf.name_scope('loss'):
-        xentropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels,
+    xentropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels,
                                                               logits=logits)
-        loss =  tf.reduce_mean(xentropy)                                                     
+    loss =  tf.reduce_mean(xentropy)                                                     
 
-    with tf.name_scope('evaluation_metrics'):
-        accuracy = tf.compat.v1.metrics.accuracy(labels, predicted_classes)
-
-    metrics = {'accuracy': accuracy}
-    tf.compat.v1.summary.scalar('accuracy', accuracy[1])
-
+    accuracy = tf.compat.v1.metrics.accuracy(labels, predicted_classes, name='acc_op')
+    
+    with tf.name_scope('metrics'):
+        tf.compat.v1.summary.scalar('accuracy', accuracy[1])
+            
+    metrics = {
+        'metrics/accuracy': accuracy,
+    }
+    
     if mode == tf.estimator.ModeKeys.EVAL:
         return tf.estimator.EstimatorSpec(mode,
                                           loss=loss,
