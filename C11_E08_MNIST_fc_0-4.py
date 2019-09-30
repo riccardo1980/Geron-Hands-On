@@ -59,8 +59,7 @@ def main(_):
     # batch is still random with no chance to set the seed
     # see: https://stackoverflow.com/questions/47009560/tf-estimator-shuffle-random-seed
     config = tf.estimator.RunConfig(tf_random_seed=42,
-                                    model_dir=os.path.join('tmp',
-                                                           datetime.utcnow().strftime('%Y%m%d-%H%M%S')),
+                                    model_dir=FLAGS.model_dir,
                                     save_checkpoints_steps=FLAGS.save_checkpoints_steps,
                                     log_step_count_steps=FLAGS.log_step_count_steps)
 
@@ -72,7 +71,7 @@ def main(_):
               'activation': 'elu',
               'n_classes': n_classes,
               'optimizer': tf.compat.v1.train.AdagradOptimizer(learning_rate=FLAGS.learning_rate),
-              'batch_norm_momentum': 0.9
+              'batch_norm_momentum': FLAGS.batch_norm_momentum
              }
 
     estimator = tf.estimator.Estimator(
@@ -133,6 +132,17 @@ if __name__ == "__main__":
         help="Evaluation throttle in seconds."
     )
 
+    parser.add_argument(
+        "--batch_norm_momentum", type=float, default=None,
+        help="Batch norm momentum."
+    )
+
+    parser.add_argument(
+        "--model_dir", type=str,
+        default=os.path.join('tmp',datetime.utcnow().strftime('%Y%m%d-%H%M%S')),
+        help="Model dir."
+    )
+    
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
     
