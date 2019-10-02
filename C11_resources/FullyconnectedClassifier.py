@@ -37,6 +37,11 @@ def model_fn(features, labels, mode, params):
     # input
     net = tf.compat.v1.feature_column.input_layer(features,
                                                   params['feature_columns'])
+    
+    # input normalization
+    net = tf.layers.batch_normalization(net,
+                                        training=mode == tf.estimator.ModeKeys.TRAIN,
+                                        momentum=params['batch_norm_momentum'])
 
     # hidden layers
     for idx, units in enumerate(params['hidden_units']):

@@ -4,6 +4,8 @@ import warnings
 import argparse
 from datetime import datetime
 import numpy as np
+import json
+from sklearn.metrics import classification_report, confusion_matrix
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)
@@ -43,13 +45,21 @@ def main(_):
 
     train_data, test_data, y_train, y_test = get_data()
 
-    # standardization trained on train, reused on test dataset
-    features_mean = np.mean(train_data, axis=0)
-    features_std = np.std(train_data, axis=0)
+    if FLAGS.batch_norm_momentum is None:
+        
+        # explicit standardization: trained on train, reused on test dataset
+        features_mean = np.mean(train_data, axis=0)
+        features_std = np.std(train_data, axis=0)
 
-    X_train = preproc_standardize(train_data, features_mean, features_std)
-    X_test = preproc_standardize(test_data, features_mean, features_std)
+        X_train = preproc_standardize(train_data, features_mean, features_std)
+        X_test = preproc_standardize(test_data, features_mean, features_std)
+    else:
+        
+        # standardization is provided by a batch normalization layer
+        X_train = train_data
+        X_test = test_data
 
+    
     n_classes = len(set(y_train))
 
     print('n_classes: {}'.format(n_classes))
@@ -67,7 +77,7 @@ def main(_):
     feature_columns = [tf.feature_column.numeric_column(key='f1', shape=X_train[0].shape)]
 
     params = {'feature_columns': feature_columns,
-              'hidden_units': 5*[100],
+              'hidden_units': FLAGS.hidden_units,
               'activation': 'elu',
               'n_classes': n_classes,
               'optimizer': tf.compat.v1.train.AdagradOptimizer(learning_rate=FLAGS.learning_rate),
@@ -91,12 +101,24 @@ def main(_):
     eval_spec = tf.estimator.EvalSpec(
         input_fn=tf.compat.v1.estimator.inputs.numpy_input_fn(x={'f1' : X_test},
                                                               y=y_test,
-                                                              batch_size=len(y_test),
-                                                              num_epochs=None,
+                                                              num_epochs=1,
                                                               shuffle=False),
         throttle_secs=FLAGS.throttle_secs)
 
     tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+
+    # reload last checkpoint and validate
+    predictions = estimator.predict(input_fn=tf.compat.v1.estimator.inputs.numpy_input_fn(x={'f1' : X_test},
+                                                                                          y=y_test,
+                                                                                          num_epochs=1,
+                                                                                          shuffle=False))
+    
+    
+    y_pred = [pred['class_ids'] for pred in predictions]
+    print(classification_report(y_test, y_pred))
+
+    print(confusion_matrix(y_test, y_pred))
+    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -143,6 +165,16 @@ if __name__ == "__main__":
         help="Model dir."
     )
     
+    parser.add_argument(
+        "--hidden_units", type=str,
+        default="[100, 100, 100, 100, 100]",
+        help="Array of hidden units."
+    )
+
     FLAGS, unparsed = parser.parse_known_args()
+    
+    # transform strings to arrays
+    FLAGS.hidden_units=json.loads(FLAGS.hidden_units)
+    
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
     
