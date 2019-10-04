@@ -107,7 +107,17 @@ def main(_):
 
     tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
-    # reload last checkpoint and validate
+    # export
+    serving_input_receiver_fn = (
+        tf.estimator.export.build_parsing_serving_input_receiver_fn(            
+            tf.feature_column.make_parse_example_spec(feature_columns)))
+
+    export_dir = estimator.export_saved_model(os.path.join(FLAGS.model_dir,'saved_model'),
+                                              serving_input_receiver_fn)
+    
+    print('Model exported in: {}'.format(export_dir))
+
+    # validate
     predictions = estimator.predict(input_fn=tf.compat.v1.estimator.inputs.numpy_input_fn(x={'f1' : X_test},
                                                                                           y=y_test,
                                                                                           num_epochs=1,
@@ -118,6 +128,7 @@ def main(_):
     print(classification_report(y_test, y_pred))
 
     print(confusion_matrix(y_test, y_pred))
+    
     
 
 if __name__ == "__main__":
@@ -161,7 +172,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--model_dir", type=str,
-        default=os.path.join('tmp',datetime.utcnow().strftime('%Y%m%d-%H%M%S')),
+        default=os.path.join('./tmp',datetime.utcnow().strftime('%Y%m%d-%H%M%S')),
         help="Model dir."
     )
     
