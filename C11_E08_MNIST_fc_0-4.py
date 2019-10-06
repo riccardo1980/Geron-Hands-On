@@ -98,22 +98,31 @@ def main(_):
                                                               shuffle=False),
         max_steps=FLAGS.max_steps)
 
-    eval_spec = tf.estimator.EvalSpec(
-        input_fn=tf.compat.v1.estimator.inputs.numpy_input_fn(x={'f1' : X_test},
-                                                              y=y_test,
-                                                              num_epochs=1,
-                                                              shuffle=False),
-        throttle_secs=FLAGS.throttle_secs)
-
-    tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
-
     # export
     serving_input_receiver_fn = (
         tf.estimator.export.build_parsing_serving_input_receiver_fn(            
             tf.feature_column.make_parse_example_spec(feature_columns)))
 
-    export_dir = estimator.export_saved_model(os.path.join(FLAGS.model_dir,'saved_model'),
-                                              serving_input_receiver_fn)
+    final_exporter = tf.estimator.FinalExporter('saved_model',
+                                                serving_input_receiver_fn=serving_input_receiver_fn)
+
+    eval_spec = tf.estimator.EvalSpec(
+        input_fn=tf.compat.v1.estimator.inputs.numpy_input_fn(x={'f1' : X_test},
+                                                              y=y_test,
+                                                              num_epochs=1,
+                                                              shuffle=False),
+        throttle_secs=FLAGS.throttle_secs,
+        exporters=[final_exporter])
+
+    tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+
+    # exporter.export(estimator,
+    #                 export_path=os.path.join(FLAGS.model_dir,'saved_model'),
+    #                 checkpoint_path=FLAGS.model_dir, 
+    #                 eval_result=False,
+    #                 is_the_final_export=True)
+    # export_dir = estimator.export_saved_model(os.path.join(FLAGS.model_dir,'saved_model'),
+    #                                           serving_input_receiver_fn)
     
     print('Model exported in: {}'.format(export_dir))
 
