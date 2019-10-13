@@ -47,6 +47,9 @@ def get_data():
 
 #     return graph
 
+def preproc_standardize(dataset, mean, std):
+    return (dataset - mean) / (std + 1e-15)
+
 def main(_):
 
     # load data

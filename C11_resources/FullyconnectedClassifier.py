@@ -44,7 +44,6 @@ def model_fn(features, labels, mode, params):
                                             training=mode == tf.estimator.ModeKeys.TRAIN,
                                             momentum=params['batch_norm_momentum'],
                                             name='input_standardization')
-
     # hidden layers
     for idx, units in enumerate(params['hidden_units']):
         net = neuron_layer(net, units, name='dense_'+str(idx+1), mode=mode,
