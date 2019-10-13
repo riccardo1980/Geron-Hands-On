@@ -1,7 +1,7 @@
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
-from tensorflow.python.keras import activations
+#pylint: disable=missing-docstring, C0301
 
 def neuron_layer(X, units, name, mode, activation=None,
                  batch_norm_momentum=None):
@@ -21,7 +21,7 @@ def neuron_layer(X, units, name, mode, activation=None,
                                               training=mode == tf.estimator.ModeKeys.TRAIN,
                                               momentum=batch_norm_momentum)
             if activation is not None:
-                Z = activations.get(activation)(Z)
+                Z = tf.keras.activations.get(activation)(Z)
         else:
             # Dense with activation
             Z = tf.keras.layers.Dense(units,
@@ -35,8 +35,7 @@ def neuron_layer(X, units, name, mode, activation=None,
 def model_fn(features, labels, mode, params):
 
     # input
-    net = tf.compat.v1.feature_column.input_layer(features,
-                                                  params['feature_columns'])
+    net = tf.feature_column.input_layer(features, params['feature_columns'])
 
     # input normalization
     if params['batch_norm_momentum'] is not None:
@@ -69,10 +68,10 @@ def model_fn(features, labels, mode, params):
                                                               logits=logits)
     loss = tf.reduce_mean(xentropy)
 
-    accuracy = tf.compat.v1.metrics.accuracy(labels, predicted_classes, name='acc_op')
+    accuracy = tf.metrics.accuracy(labels, predicted_classes, name='acc_op')
 
     with tf.name_scope('metrics'):
-        tf.compat.v1.summary.scalar('accuracy', accuracy[1])
+        tf.summary.scalar('accuracy', accuracy[1])
 
     metrics = {
         'metrics/accuracy': accuracy,
@@ -91,16 +90,16 @@ def model_fn(features, labels, mode, params):
     # see: https://github.com/tensorflow/tensorflow/issues/16455
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        train_op = optimizer.minimize(loss, global_step=tf.compat.v1.train.get_global_step())
+        train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
 
     return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
 
 def make_input_fn(features, labels=None, batch_size=128, num_epochs=1, shuffle=False):
-    _input_fn = tf.compat.v1.estimator.inputs.numpy_input_fn(x={'features' : features},
-                                                             y=labels,
-                                                             batch_size=batch_size,
-                                                             num_epochs=num_epochs,
-                                                             shuffle=shuffle)
+    _input_fn = tf.estimator.inputs.numpy_input_fn(x={'features' : features},
+                                                   y=labels,
+                                                   batch_size=batch_size,
+                                                   num_epochs=num_epochs,
+                                                   shuffle=shuffle)
     return _input_fn
 
 def serving_input_receiver_fn():
