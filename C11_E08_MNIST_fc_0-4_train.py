@@ -85,7 +85,8 @@ def main(_):
     feature_columns = [tf.feature_column.numeric_column(key='features', shape=X_train[0].shape)]
 
     params = {'feature_columns': feature_columns,
-              'hidden_units': FLAGS.hidden_units,
+              'feature_extractor_units': FLAGS.feature_extractor_units,
+              'fc_units': FLAGS.fc_units,
               'activation': 'elu',
               'n_classes': n_classes,
               'optimizer': AdagradOptimizer(learning_rate=FLAGS.learning_rate),
@@ -184,7 +185,13 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--hidden_units", type=str,
+        "--feature_extractor_units", type=str,
+        default="[100, 100, 100, 100, 100]",
+        help="Array of hidden units."
+    )
+
+    parser.add_argument(
+        "--fc_units", type=str,
         default="[100, 100, 100, 100, 100]",
         help="Array of hidden units."
     )
@@ -192,6 +199,7 @@ if __name__ == "__main__":
     FLAGS, UNPARSED = parser.parse_known_args()
 
     # transform strings to arrays
-    FLAGS.hidden_units = json.loads(FLAGS.hidden_units)
+    FLAGS.feature_extractor_units = json.loads(FLAGS.feature_extractor_units)
+    FLAGS.fc_units = json.loads(FLAGS.fc_units)
 
     tf.app.run(main=main, argv=[sys.argv[0]] + UNPARSED)

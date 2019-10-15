@@ -32,6 +32,14 @@ def neuron_layer(X, units, name, mode, activation=None,
 
         return Z
 
+def fc_layers(net, units, name, mode, activation=None, batch_norm_momentum=None):
+    with tf.name_scope(name):
+        for idx, units in enumerate(units):
+            net = neuron_layer(net, units, name='dense_'+str(idx+1), mode=mode,
+                               activation=activation,
+                               batch_norm_momentum=batch_norm_momentum)
+    return net
+
 def model_fn(features, labels, mode, params):
 
     # input
@@ -43,11 +51,21 @@ def model_fn(features, labels, mode, params):
                                             training=mode == tf.estimator.ModeKeys.TRAIN,
                                             momentum=params['batch_norm_momentum'],
                                             name='input_standardization')
-    # hidden layers
-    for idx, units in enumerate(params['hidden_units']):
-        net = neuron_layer(net, units, name='dense_'+str(idx+1), mode=mode,
-                           activation=params['activation'],
-                           batch_norm_momentum=params['batch_norm_momentum'])
+    # embedding layers
+    net = fc_layers(net,
+                    units=params['feature_extractor_units'],
+                    name='feature_extraction', 
+                    mode=mode,
+                    activation=params['activation'],
+                    batch_norm_momentum=params['batch_norm_momentum'])
+
+    # fc layers
+    net = fc_layers(net,
+                    units=params['fc_units'],
+                    name='fc', 
+                    mode=mode,
+                    activation=params['activation'],
+                    batch_norm_momentum=params['batch_norm_momentum'])
 
     # logits
     logits = neuron_layer(net, params['n_classes'], name='logits', mode=mode,
