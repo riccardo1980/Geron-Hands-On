@@ -5,34 +5,6 @@ import tensorflow.compat.v1 as tf
 
 def neuron_layer(X, units, mode, activation=None,
                  batch_norm_momentum=None):
-<<<<<<< HEAD
-    with tf.name_scope(name):
-
-        inputs = int(np.prod(X.get_shape().as_list()[1:]))
-        stddev = 2 / np.sqrt(inputs + units)
-
-        if batch_norm_momentum is not None:
-            # Dense + normalization + activation
-            Z = tf.keras.layers.Dense(units,
-                                      activation=None,
-                                      use_bias=True,
-                                      kernel_initializer=tf.initializers.truncated_normal(stddev=stddev),
-                                      bias_initializer='zeros')(X)
-            Z = tf.layers.batch_normalization(Z,
-                                              training=mode == tf.estimator.ModeKeys.TRAIN,
-                                              momentum=batch_norm_momentum)
-            if activation is not None:
-                Z = activations.get(activation)(Z)
-        else:
-            # Dense with activation
-            Z = tf.keras.layers.Dense(units,
-                                      activation=activation,
-                                      use_bias=True,
-                                      kernel_initializer=tf.initializers.truncated_normal(stddev=stddev),
-                                      bias_initializer='zeros')(X)
-
-    return Z
-=======
 
     inputs = int(np.prod(X.get_shape().as_list()[1:]))
     stddev = 2 / np.sqrt(inputs + units)
@@ -67,7 +39,6 @@ def fc_layers(net, units, mode, activation=None, batch_norm_momentum=None):
                                activation=activation,
                                batch_norm_momentum=batch_norm_momentum)
     return net
->>>>>>> devel
 
 def model_fn(features, labels, mode, params):
 
