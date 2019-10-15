@@ -3,39 +3,39 @@ import tensorflow.compat.v1 as tf
 
 #pylint: disable=missing-docstring, C0301
 
-def neuron_layer(X, units, name, mode, activation=None,
+def neuron_layer(X, units, mode, activation=None,
                  batch_norm_momentum=None):
-    with tf.name_scope(name):
 
-        inputs = int(np.prod(X.get_shape().as_list()[1:]))
-        stddev = 2 / np.sqrt(inputs + units)
+    inputs = int(np.prod(X.get_shape().as_list()[1:]))
+    stddev = 2 / np.sqrt(inputs + units)
 
-        if batch_norm_momentum is not None:
-            # Dense + normalization + activation
-            Z = tf.keras.layers.Dense(units,
-                                      activation=None,
-                                      use_bias=True,
-                                      kernel_initializer=tf.initializers.truncated_normal(stddev=stddev),
-                                      bias_initializer='zeros')(X)
-            Z = tf.layers.batch_normalization(Z,
-                                              training=mode == tf.estimator.ModeKeys.TRAIN,
-                                              momentum=batch_norm_momentum)
-            if activation is not None:
-                Z = tf.keras.activations.get(activation)(Z)
-        else:
-            # Dense with activation
-            Z = tf.keras.layers.Dense(units,
-                                      activation=activation,
-                                      use_bias=True,
-                                      kernel_initializer=tf.initializers.truncated_normal(stddev=stddev),
-                                      bias_initializer='zeros')(X)
+    if batch_norm_momentum is not None:
+        # Dense + normalization + activation
+        Z = tf.keras.layers.Dense(units,
+                                    activation=None,
+                                    use_bias=True,
+                                    kernel_initializer=tf.initializers.truncated_normal(stddev=stddev),
+                                    bias_initializer='zeros')(X)
+        Z = tf.layers.batch_normalization(Z,
+                                            training=mode == tf.estimator.ModeKeys.TRAIN,
+                                            momentum=batch_norm_momentum)
+        if activation is not None:
+            Z = tf.keras.activations.get(activation)(Z)
+    else:
+        # Dense with activation
+        Z = tf.keras.layers.Dense(units,
+                                    activation=activation,
+                                    use_bias=True,
+                                    kernel_initializer=tf.initializers.truncated_normal(stddev=stddev),
+                                    bias_initializer='zeros')(X)
 
-        return Z
+    return Z
 
-def fc_layers(net, units, name, mode, activation=None, batch_norm_momentum=None):
-    with tf.name_scope(name):
-        for idx, units in enumerate(units):
-            net = neuron_layer(net, units, name='dense_'+str(idx+1), mode=mode,
+def fc_layers(net, units, mode, activation=None, batch_norm_momentum=None):
+
+    for idx, units in enumerate(units):
+        with tf.name_scope('dense_'+str(idx+1)):
+            net = neuron_layer(net, units, mode=mode,
                                activation=activation,
                                batch_norm_momentum=batch_norm_momentum)
     return net
@@ -52,24 +52,25 @@ def model_fn(features, labels, mode, params):
                                             momentum=params['batch_norm_momentum'],
                                             name='input_standardization')
     # embedding layers
-    net = fc_layers(net,
-                    units=params['feature_extractor_units'],
-                    name='feature_extraction', 
-                    mode=mode,
-                    activation=params['activation'],
-                    batch_norm_momentum=params['batch_norm_momentum'])
+    with tf.name_scope('feature_extraction'):
+        net = fc_layers(net,
+                        units=params['feature_extractor_units'], 
+                        mode=mode,
+                        activation=params['activation'],
+                        batch_norm_momentum=params['batch_norm_momentum'])
 
     # fc layers
-    net = fc_layers(net,
-                    units=params['fc_units'],
-                    name='fc', 
-                    mode=mode,
-                    activation=params['activation'],
-                    batch_norm_momentum=params['batch_norm_momentum'])
+    with tf.name_scope('fc'):
+        net = fc_layers(net,
+                        units=params['fc_units'],
+                        mode=mode,
+                        activation=params['activation'],
+                        batch_norm_momentum=params['batch_norm_momentum'])
 
     # logits
-    logits = neuron_layer(net, params['n_classes'], name='logits', mode=mode,
-                          activation=None, batch_norm_momentum=params['batch_norm_momentum'])
+    with tf.name_scope('logits'):
+        logits = neuron_layer(net, params['n_classes'], mode=mode,
+                              activation=None, batch_norm_momentum=params['batch_norm_momentum'])
 
     # predictions
     predicted_classes = tf.argmax(logits, 1)
