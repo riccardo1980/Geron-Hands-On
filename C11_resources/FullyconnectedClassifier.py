@@ -30,7 +30,7 @@ def neuron_layer(X, units, name, mode, activation=None,
                                       kernel_initializer=tf.initializers.truncated_normal(stddev=stddev),
                                       bias_initializer='zeros')(X)
 
-        return Z
+    return Z
 
 def model_fn(features, labels, mode, params):
 
