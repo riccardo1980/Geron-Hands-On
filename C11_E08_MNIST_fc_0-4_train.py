@@ -9,9 +9,13 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)
-    import tensorflow as tf
+
+    import tensorflow.compat.v1 as tf
+    from tensorflow.train import AdagradOptimizer 
 
     from C11_resources import FullyconnectedClassifier
+
+#pylint: disable=missing-docstring, C0301
 
 def dataset_prune(features, labels, idx):
     return features[idx], labels[idx]
@@ -50,16 +54,16 @@ def dset_standardize(train_data, test_data):
 
     return (X_train, X_test)
 
-preproc_fns = {
-    'standardize': dset_standardize
-}
-
 def main(_):
 
     train_data, test_data, y_train, y_test = get_data()
 
+    PREPROC_FNS = {
+        'standardize': dset_standardize
+    }
+    
     if FLAGS.dataset_preproc is not None:
-        X_train, X_test = preproc_fns[FLAGS.dataset_preproc](train_data, test_data)
+        X_train, X_test = PREPROC_FNS[FLAGS.dataset_preproc](train_data, test_data)
     else:
         # no preprocessing
         X_train, X_test = train_data, test_data
@@ -81,41 +85,47 @@ def main(_):
     feature_columns = [tf.feature_column.numeric_column(key='features', shape=X_train[0].shape)]
 
     params = {'feature_columns': feature_columns,
-              'hidden_units': FLAGS.hidden_units,
+              'feature_extractor_units': FLAGS.feature_extractor_units,
+              'fc_units': FLAGS.fc_units,
               'activation': 'elu',
               'n_classes': n_classes,
-              'optimizer': tf.compat.v1.train.AdagradOptimizer(learning_rate=FLAGS.learning_rate),
+              'optimizer': AdagradOptimizer(learning_rate=FLAGS.learning_rate),
               'batch_norm_momentum': FLAGS.batch_norm_momentum
              }
 
-    estimator = tf.estimator.Estimator(
+    classifier = tf.estimator.Estimator(
         model_fn=FullyconnectedClassifier.model_fn,
         params=params,
         config=config
         )
 
     train_spec = tf.estimator.TrainSpec(
-        input_fn=FullyconnectedClassifier.make_input_fn(X_train, labels=y_train, batch_size=FLAGS.train_batch_size, num_epochs=None, shuffle=False),
+        input_fn=FullyconnectedClassifier.make_input_fn(X_train, 
+                                                        labels=y_train,
+                                                        batch_size=FLAGS.train_batch_size,
+                                                        num_epochs=None,
+                                                        shuffle=False),
         max_steps=FLAGS.max_steps)
 
     eval_spec = tf.estimator.EvalSpec(
-        input_fn=FullyconnectedClassifier.make_input_fn(X_test, labels=y_test),
+        input_fn=FullyconnectedClassifier.make_input_fn(X_test,
+                                                        labels=y_test),
         throttle_secs=FLAGS.throttle_secs)
 
     # training
-    tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+    tf.estimator.train_and_evaluate(classifier, train_spec, eval_spec)
 
     #export
-    export_dir = estimator.export_saved_model(os.path.join(FLAGS.model_dir, 'saved_model'),
-                                              serving_input_receiver_fn=FullyconnectedClassifier.serving_input_receiver_fn)
+    export_dir = classifier.export_saved_model(os.path.join(FLAGS.model_dir, 'saved_model'),
+                                               serving_input_receiver_fn=FullyconnectedClassifier.serving_input_receiver_fn)
 
     print('Model exported in: {}'.format(export_dir))
 
     # validation
-    predictions = estimator.predict(input_fn=tf.compat.v1.estimator.inputs.numpy_input_fn(x={'features' : X_test},
-                                                                                          y=y_test,
-                                                                                          num_epochs=1,
-                                                                                          shuffle=False))
+    predictions = classifier.predict(input_fn=tf.estimator.inputs.numpy_input_fn(x={'features' : X_test},
+                                                                                 y=y_test,
+                                                                                 num_epochs=1,
+                                                                                 shuffle=False))
 
     y_pred = [pred['class_ids'] for pred in predictions]
     print(classification_report(y_test, y_pred))
@@ -175,14 +185,21 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--hidden_units", type=str,
+        "--feature_extractor_units", type=str,
         default="[100, 100, 100, 100, 100]",
         help="Array of hidden units."
     )
 
-    FLAGS, unparsed = parser.parse_known_args()
+    parser.add_argument(
+        "--fc_units", type=str,
+        default="[100, 100, 100, 100, 100]",
+        help="Array of hidden units."
+    )
+
+    FLAGS, UNPARSED = parser.parse_known_args()
 
     # transform strings to arrays
-    FLAGS.hidden_units = json.loads(FLAGS.hidden_units)
+    FLAGS.feature_extractor_units = json.loads(FLAGS.feature_extractor_units)
+    FLAGS.fc_units = json.loads(FLAGS.fc_units)
 
-    tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+    tf.app.run(main=main, argv=[sys.argv[0]] + UNPARSED)
