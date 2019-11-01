@@ -13,12 +13,15 @@ with warnings.catch_warnings():
 
     from C11_resources import FullyconnectedClassifier
 
+
 def dataset_prune(features, labels, idx):
     return features[idx], labels[idx]
 
+
 def get_data():
     # read complete dataset
-    (complete_train_data, complete_train_target), (complete_test_data, complete_test_target) = tf.keras.datasets.mnist.load_data()
+    (complete_train_data, complete_train_target), (complete_test_data,
+                                                   complete_test_target) = tf.keras.datasets.mnist.load_data()
 
     # retain digits 0 to 4
     train_data, train_target = dataset_prune(complete_train_data,
@@ -47,8 +50,10 @@ def get_data():
 
 #     return graph
 
+
 def preproc_standardize(dataset, mean, std):
     return (dataset - mean) / (std + 1e-15)
+
 
 def main(_):
 
@@ -65,6 +70,7 @@ def main(_):
     print(classification_report(y_test, y_pred))
 
     print(confusion_matrix(y_test, y_pred))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

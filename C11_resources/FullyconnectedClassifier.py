@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-#pylint: disable=missing-docstring, C0301
+# pylint: disable=missing-docstring, C0301
+
 
 def neuron_layer(X, units, mode, activation=None,
                  batch_norm_momentum=None):
@@ -12,24 +13,27 @@ def neuron_layer(X, units, mode, activation=None,
     if batch_norm_momentum is not None:
         # Dense + normalization + activation
         Z = tf.keras.layers.Dense(units,
-                                    activation=None,
-                                    use_bias=True,
-                                    kernel_initializer=tf.initializers.truncated_normal(stddev=stddev),
-                                    bias_initializer='zeros')(X)
+                                  activation=None,
+                                  use_bias=True,
+                                  kernel_initializer=tf.initializers.truncated_normal(
+                                      stddev=stddev),
+                                  bias_initializer='zeros')(X)
         Z = tf.layers.batch_normalization(Z,
-                                            training=mode == tf.estimator.ModeKeys.TRAIN,
-                                            momentum=batch_norm_momentum)
+                                          training=mode == tf.estimator.ModeKeys.TRAIN,
+                                          momentum=batch_norm_momentum)
         if activation is not None:
             Z = tf.keras.activations.get(activation)(Z)
     else:
         # Dense with activation
         Z = tf.keras.layers.Dense(units,
-                                    activation=activation,
-                                    use_bias=True,
-                                    kernel_initializer=tf.initializers.truncated_normal(stddev=stddev),
-                                    bias_initializer='zeros')(X)
+                                  activation=activation,
+                                  use_bias=True,
+                                  kernel_initializer=tf.initializers.truncated_normal(
+                                      stddev=stddev),
+                                  bias_initializer='zeros')(X)
 
     return Z
+
 
 def fc_layers(net, units, mode, activation=None, batch_norm_momentum=None):
 
@@ -39,6 +43,7 @@ def fc_layers(net, units, mode, activation=None, batch_norm_momentum=None):
                                activation=activation,
                                batch_norm_momentum=batch_norm_momentum)
     return net
+
 
 def model_fn(features, labels, mode, params):
 
@@ -54,7 +59,7 @@ def model_fn(features, labels, mode, params):
     # embedding layers
     with tf.name_scope('feature_extraction'):
         net = fc_layers(net,
-                        units=params['feature_extractor_units'], 
+                        units=params['feature_extractor_units'],
                         mode=mode,
                         activation=params['activation'],
                         batch_norm_momentum=params['batch_norm_momentum'])
@@ -109,18 +114,22 @@ def model_fn(features, labels, mode, params):
     # see: https://github.com/tensorflow/tensorflow/issues/16455
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        train_op = optimizer.minimize(loss, global_step=tf.train.get_global_step())
+        train_op = optimizer.minimize(
+            loss, global_step=tf.train.get_global_step())
 
     return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
 
+
 def make_input_fn(features, labels=None, batch_size=128, num_epochs=1, shuffle=False):
-    _input_fn = tf.estimator.inputs.numpy_input_fn(x={'features' : features},
+    _input_fn = tf.estimator.inputs.numpy_input_fn(x={'features': features},
                                                    y=labels,
                                                    batch_size=batch_size,
                                                    num_epochs=num_epochs,
                                                    shuffle=shuffle)
     return _input_fn
 
+
 def serving_input_receiver_fn():
-    inputs = {'features': tf.placeholder(shape=[None, 28, 28], dtype=tf.float32)}
+    inputs = {'features': tf.placeholder(
+        shape=[None, 28, 28], dtype=tf.float32)}
     return tf.estimator.export.ServingInputReceiver(inputs, inputs)
