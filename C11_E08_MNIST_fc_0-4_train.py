@@ -11,18 +11,21 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)
 
     import tensorflow.compat.v1 as tf
-    from tensorflow.train import AdagradOptimizer 
+    from tensorflow.train import AdagradOptimizer
 
     from C11_resources import FullyconnectedClassifier
 
-#pylint: disable=missing-docstring, C0301
+# pylint: disable=missing-docstring, C0301
+
 
 def dataset_prune(features, labels, idx):
     return features[idx], labels[idx]
 
+
 def get_data():
     # read complete dataset
-    (complete_train_data, complete_train_target), (complete_test_data, complete_test_target) = tf.keras.datasets.mnist.load_data()
+    (complete_train_data, complete_train_target), (complete_test_data,
+                                                   complete_test_target) = tf.keras.datasets.mnist.load_data()
 
     # retain digits 0 to 4
     train_data, train_target = dataset_prune(complete_train_data,
@@ -41,6 +44,7 @@ def get_data():
 
     return train_data, test_data, train_target, test_target
 
+
 def dset_standardize(train_data, test_data):
 
     def _preproc_standardize(dataset, mean, std):
@@ -54,6 +58,7 @@ def dset_standardize(train_data, test_data):
 
     return (X_train, X_test)
 
+
 def main(_):
 
     train_data, test_data, y_train, y_test = get_data()
@@ -61,9 +66,10 @@ def main(_):
     PREPROC_FNS = {
         'standardize': dset_standardize
     }
-    
+
     if FLAGS.dataset_preproc is not None:
-        X_train, X_test = PREPROC_FNS[FLAGS.dataset_preproc](train_data, test_data)
+        X_train, X_test = PREPROC_FNS[FLAGS.dataset_preproc](
+            train_data, test_data)
     else:
         # no preprocessing
         X_train, X_test = train_data, test_data
@@ -71,7 +77,8 @@ def main(_):
     n_classes = len(set(y_train))
 
     print('n_classes: {}'.format(n_classes))
-    print('epochs: {}'.format(FLAGS.max_steps * FLAGS.train_batch_size / y_train.shape[0]))
+    print('epochs: {}'.format(FLAGS.max_steps *
+                              FLAGS.train_batch_size / y_train.shape[0]))
 
     # this seed is used only for initialization
     # batch is still random with no chance to set the seed
@@ -82,7 +89,8 @@ def main(_):
                                     log_step_count_steps=FLAGS.log_step_count_steps)
 
     # create feature columns
-    feature_columns = [tf.feature_column.numeric_column(key='features', shape=X_train[0].shape)]
+    feature_columns = [tf.feature_column.numeric_column(
+        key='features', shape=X_train[0].shape)]
 
     params = {'feature_columns': feature_columns,
               'feature_extractor_units': FLAGS.feature_extractor_units,
@@ -91,16 +99,16 @@ def main(_):
               'n_classes': n_classes,
               'optimizer': AdagradOptimizer(learning_rate=FLAGS.learning_rate),
               'batch_norm_momentum': FLAGS.batch_norm_momentum
-             }
+              }
 
     classifier = tf.estimator.Estimator(
         model_fn=FullyconnectedClassifier.model_fn,
         params=params,
         config=config
-        )
+    )
 
     train_spec = tf.estimator.TrainSpec(
-        input_fn=FullyconnectedClassifier.make_input_fn(X_train, 
+        input_fn=FullyconnectedClassifier.make_input_fn(X_train,
                                                         labels=y_train,
                                                         batch_size=FLAGS.train_batch_size,
                                                         num_epochs=None,
@@ -115,14 +123,14 @@ def main(_):
     # training
     tf.estimator.train_and_evaluate(classifier, train_spec, eval_spec)
 
-    #export
+    # export
     export_dir = classifier.export_saved_model(os.path.join(FLAGS.model_dir, 'saved_model'),
                                                serving_input_receiver_fn=FullyconnectedClassifier.serving_input_receiver_fn)
 
     print('Model exported in: {}'.format(export_dir))
 
     # validation
-    predictions = classifier.predict(input_fn=tf.estimator.inputs.numpy_input_fn(x={'features' : X_test},
+    predictions = classifier.predict(input_fn=tf.estimator.inputs.numpy_input_fn(x={'features': X_test},
                                                                                  y=y_test,
                                                                                  num_epochs=1,
                                                                                  shuffle=False))
@@ -131,6 +139,7 @@ def main(_):
     print(classification_report(y_test, y_pred))
 
     print(confusion_matrix(y_test, y_pred))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -168,7 +177,8 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--model_dir", type=str,
-        default=os.path.join('./tmp', datetime.utcnow().strftime('%Y%m%d-%H%M%S')),
+        default=os.path.join(
+            './tmp', datetime.utcnow().strftime('%Y%m%d-%H%M%S')),
         help="Model dir."
     )
 
